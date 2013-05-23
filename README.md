@@ -15,7 +15,7 @@ Currently there are two different device types supported:<br>
 ## Usage
 
 <code>./hmxml.rb 0</code><br>
-Turns off all devices.<br>
+Turns all devices off.<br>
 
 <code>./hmxml.rb status</code><br>
 Gives back the system status.<br>
@@ -24,7 +24,7 @@ Gives back the system status.<br>
 Toggles the DEVICE state.<br>
 
 <code>./hmxml.rb DEVICE VALUE</code><br>
-Set a state value for a DEVICE.<br>
+Set a state/level value for a DEVICE.<br>
 
 ## Copyright / License
 
