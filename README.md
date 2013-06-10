@@ -1,7 +1,7 @@
-Ruby-Homematic-XMLRPC
+Ruby-HomeMatic-XMLRPC
 =====================
 
-A simple Ruby script that lets you take control over your Homematic home automation system.<br>
+A simple Ruby script that lets you take control over your HomeMatic home automation system.<br>
 It is using the XMLRPC-API provided by default by any CCU (no additional Plugins are required).
 
 ## Getting Started
