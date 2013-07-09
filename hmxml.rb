@@ -10,16 +10,22 @@ class HCHomeControl
 
     attr_accessor :actors
 
-    CCUIP   = '0.0.0.0'
-    CCUPORT = 2000 # BidCos-Wired = 2000, BidCos-RF = 2001, Internal = 2002
+    CCUIP          = '0.0.0.0'
+    # BidCos-Wired = 2000, BidCos-RF = 2001, Internal = 2002
+    CCUWIREDPORT   = 2000
+    CCURFPORT      = 2001
 
     HCRANGEDEVICE  = :HCRangeDevice
     HCBINARYDEVICE = :HCBinaryDevice
 
+    HCWIREDBUS     = :HCWiredBus
+    HCRFBUS        = :HCRfBus
+
 
     def initialize
         # connect to server (CCU)
-        @server = XMLRPC::Client.new(CCUIP, '/', CCUPORT)
+        @wiredServer = XMLRPC::Client.new(CCUIP, '/', CCUWIREDPORT)
+        @rfServer    = XMLRPC::Client.new(CCUIP, '/', CCURFPORT)
 
         # clear actors
         @actors = {}
@@ -29,10 +35,11 @@ class HCHomeControl
     def setValues(newSetting)
         newSetting.each do |deviceKey, value|
             if !@actors.has_key?(deviceKey) then next end
-            if @actors[deviceKey][:type] == HCBINARYDEVICE
-                @server.call('setValue', @actors[deviceKey][:adress], 'STATE', value.to_i.to_s)
-            elsif @actors[deviceKey][:type] == HCRANGEDEVICE
-                @server.call('setValue', @actors[deviceKey][:adress], 'LEVEL', value.to_f.to_s)
+            deviceServer = (@actors[deviceKey][:bustype] == HCRFBUS) ? @rfServer : @wiredServer
+            if @actors[deviceKey][:devicetype] == HCBINARYDEVICE
+                deviceServer.call('setValue', @actors[deviceKey][:adress], 'STATE', value.to_i.to_s)
+            elsif @actors[deviceKey][:devicetype] == HCRANGEDEVICE
+                deviceServer.call('setValue', @actors[deviceKey][:adress], 'LEVEL', value.to_f.to_s)
             end
         end
     end
@@ -40,20 +47,21 @@ class HCHomeControl
 
     def setValue(deviceKey, value=nil)
         if !@actors.has_key?(deviceKey.to_sym) then return end
-        if @actors[deviceKey.to_sym][:type] == HCBINARYDEVICE
+        deviceServer = (@actors[deviceKey.to_sym][:bustype] == HCRFBUS) ? @rfServer : @wiredServer
+        if @actors[deviceKey.to_sym][:devicetype] == HCBINARYDEVICE
             if value == nil
-                newValue = @server.call('getValue', @actors[deviceKey.to_sym][:adress], 'STATE') ? 0 : 1
+                newValue = deviceServer.call('getValue', @actors[deviceKey.to_sym][:adress], 'STATE') ? 0 : 1
             else
                 newValue = value.to_i
             end
-            @server.call('setValue', @actors[deviceKey.to_sym][:adress], 'STATE', (newValue==1 ? '1' : '0'))
-        elsif @actors[deviceKey.to_sym][:type] == HCRANGEDEVICE
+            deviceServer.call('setValue', @actors[deviceKey.to_sym][:adress], 'STATE', (newValue==1 ? '1' : '0'))
+        elsif @actors[deviceKey.to_sym][:devicetype] == HCRANGEDEVICE
             if value == nil
-                newValue = @server.call('getValue', @actors[deviceKey.to_sym][:adress], 'LEVEL') > 0 ? 0.0 : 1.0
+                newValue = deviceServer.call('getValue', @actors[deviceKey.to_sym][:adress], 'LEVEL') > 0 ? 0.0 : 1.0
             else
                 newValue = (value.to_i >= 0 || value.to_i <= 100) ? (value.to_f / 100) : 0.0
             end
-            @server.call('setValue', @actors[deviceKey.to_sym][:adress], 'LEVEL', newValue.to_s)
+            deviceServer.call('setValue', @actors[deviceKey.to_sym][:adress], 'LEVEL', newValue.to_s)
         end
     end
 
@@ -62,10 +70,11 @@ class HCHomeControl
         result = {}
         actors.each do |deviceKey, device|
             currentValue = nil
-            if device[:type] == HCBINARYDEVICE
-                currentValue = @server.call('getValue', device[:adress], 'STATE') ? 1 : 0
-            elsif device[:type] == HCRANGEDEVICE
-                currentValue = @server.call('getValue', device[:adress], 'LEVEL')
+            deviceServer = (device[:bustype] == HCRFBUS) ? @rfServer : @wiredServer
+            if device[:devicetype] == HCBINARYDEVICE
+                currentValue = deviceServer.call('getValue', device[:adress], 'STATE') ? 1 : 0
+            elsif device[:devicetype] == HCRANGEDEVICE
+                currentValue = deviceServer.call('getValue', device[:adress], 'LEVEL')
             end
             result[deviceKey.to_sym] = currentValue
         end
@@ -76,16 +85,17 @@ end
 
 
 HCHomeControl.instance.actors = 
-         {:bedroom1 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCRANGEDEVICE},
-          :bedroom2 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCRANGEDEVICE},
-          :living1  => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCRANGEDEVICE},
-          :living2  => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCRANGEDEVICE},
-          :kitchen1 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE},
-          :kitchen2 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE},
-          :gallery1 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE},
-          :gallery2 => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE},
-          :studio   => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE},
-          :outdoors => {:adress => 'IEQ0XXXXXX:XX', :type => HCHomeControl::HCBINARYDEVICE}}
+         {:bedroom1 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCRANGEDEVICE},
+          :bedroom2 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCRANGEDEVICE},
+          :living1  => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCRANGEDEVICE},
+          :living2  => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCRANGEDEVICE},
+          :kitchen1 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :kitchen2 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :gallery1 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :gallery2 => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :studio   => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :outdoors => {:adress => 'IEQ0XXXXXX:XX', :bustype => HCHomeControl::HCWIREDBUS, :devicetype => HCHomeControl::HCBINARYDEVICE},
+          :maindoor => {:adress => 'JEQ0XXXXXX:XX', :bustype => HCHomeControl::HCRFBUS,    :devicetype => HCHomeControl::HCBINARYDEVICE}}
 
 
 if ARGV.first == '0' || ARGV.first == 'off'
@@ -103,9 +113,9 @@ elsif ARGV.first == '99'
 
 elsif ARGV.first == 'status'
     HCHomeControl.instance.getValues.each do |device, state|
-        printf("%15s %s\n", device.to_s, (state == 0 ? state.to_s.color(:red) : state.to_s.color(:green)))
+        printf("%18s %s\n", device.to_s, (state == 0 ? state.to_s.color(:red) : state.to_s.color(:green)))
     end
 
-elsif ARGV[0] != nil && ARGV[1] != nil
+elsif ARGV[0] != nil
     HCHomeControl.instance.setValue(ARGV[0], ARGV[1])
 end
