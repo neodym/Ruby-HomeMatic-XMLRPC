@@ -2,7 +2,7 @@
 
 require 'singleton'
 require 'xmlrpc/client'
-require 'pp'
+require 'rainbow'
 
 
 class HCHomeControl
@@ -102,8 +102,10 @@ elsif ARGV.first == '99'
                                       :bedroom1 => 1.0, :bedroom2 => 1.0})
 
 elsif ARGV.first == 'status'
-    pp HCHomeControl.instance.getValues
+    HCHomeControl.instance.getValues.each do |device, state|
+        printf("%15s %s\n", device.to_s, (state == 0 ? state.to_s.color(:red) : state.to_s.color(:green)))
+    end
 
-else
+elsif ARGV[0] != nil && ARGV[1] != nil
     HCHomeControl.instance.setValue(ARGV[0], ARGV[1])
 end
