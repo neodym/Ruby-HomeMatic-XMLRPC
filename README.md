@@ -7,7 +7,7 @@ It is using the XMLRPC-API provided by default by any CCU (no additional Plugins
 ## Getting Started
 
 1. Set the IP adress of the CCU: <code>CCUIP = '0.0.0.0'</code>
-2. Set up the <code>HCHomeControl.instance.actors</code> Hash with your device names, adresses and types.<br>
+2. Set up the <code>HCHomeControl.instance.actors</code> Hash with your device names, adresses, bus types and device types.<br>
 Currently there are two different device types supported:<br>
   <ul><li><code>HCHomeControl::HCRANGEDEVICE</code> is a dimmable device (LEVEL value between 0.0 and 1.0).</li>
   <li><code>HCHomeControl::HCBINARYDEVICE</code> is a device with two states (STATE value 0 or 1).</li></ul>
